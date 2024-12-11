@@ -1,0 +1,81 @@
+version: "3.6"
+
+
+# THis is designed for a system I already have running, the names that are existing are static for now
+networks:
+  levi_default:
+    external: true
+    name: "levi_default"
+  rickroll:
+    external: true
+    name: "rickroll"  # The internal communication network
+
+volumes:
+  mastodon:
+  redis-mastodon:
+
+services:
+  mastodon:
+    image: lscr.io/linuxserver/mastodon:latest
+    container_name: mastodon
+    environment:
+      - hostname: redis
+      - PUID=$PGID
+      - PGID=$PGID
+      - TZ=America/Denver
+      - LOCAL_DOMAIN=${WEB_DOMAIN}
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - DB_HOST=db
+      - DB_USER=mastodon
+      - DB_NAME=mastodon
+      - DB_PASS=mastodon
+      - DB_PORT=5432
+      - ES_ENABLED=false
+      - ACTIVE_RECORD_ENCRYPTION_PRIMARY_KEY=${ACTIVE_RECORD_ENCRYPTION_PRIMARY_KEY}
+      - ACTIVE_RECORD_ENCRYPTION_DETERMINISTIC_KEY=${ACTIVE_RECORD_ENCRYPTION_DETERMINISTIC_KEY}
+      - ACTIVE_RECORD_ENCRYPTION_KEY_DERIVATION_SALT=${ACTIVE_RECORD_ENCRYPTION_KEY_DERIVATION_SALT}
+      - SECRET_KEY_BASE=${SECRET_KEY_BASE}
+      - OTP_SECRET=${OTP_SECRET}
+      - VAPID_PRIVATE_KEY=${VAPID_PRIVATE_KEY}
+      - VAPID_PUBLIC_KEY=${VAPID_PUBLIC_KEY}
+      - SMTP_SERVER=${SMTP_SERVER}
+      - SMTP_PORT=25
+      - SMTP_LOGIN=${SMTP_LOGIN}
+      - SMTP_PASSWORD=${SMTP_PASSWORD}
+      - SMTP_FROM_ADDRESS=notifications@${WEB_DOMAIN}
+      - S3_ENABLED=false
+      - WEB_DOMAIN=${WEB_DOMAIN} #optional
+      - ES_HOST=es #optional
+      - ES_PORT=9200 #optional
+      - ES_USER=elastic #optional
+      - ES_PASS=elastic #optional
+      - S3_BUCKET= #optional
+      - AWS_ACCESS_KEY_ID= #optional
+      - AWS_SECRET_ACCESS_KEY= #optional
+      - S3_ALIAS_HOST= #optional
+      - SIDEKIQ_ONLY=false #optional
+      - SIDEKIQ_QUEUE= #optional
+      - SIDEKIQ_DEFAULT=false #optional
+      - SIDEKIQ_THREADS=5 #optional
+      - DB_POOL=5 #optional
+      - NO_CHOWN= #optional
+    volumes:
+      - mastodon:/config
+    restart: unless-stopped
+    networks:
+      - rickroll
+      - levi_default
+    depends_on:
+      redis:
+        condition: service_started
+
+  redis:
+    hostname: reddis
+    image: 'bitnami/redis:latest'
+    environment:
+      - ALLOW_EMPTY_PASSWORD=yes
+    networks:
+      - rickroll
+    volumes: 
+      redis-mastodon:/data
